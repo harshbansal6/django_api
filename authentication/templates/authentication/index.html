@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .response {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    
+    <div class="card">
+        <h2>Register</h2>
+        <div class="form-group">
+            <label for="register-email">Email:</label>
+            <input type="email" id="register-email" required>
+        </div>
+        <div class="form-group">
+            <label for="register-password">Password:</label>
+            <input type="password" id="register-password" required>
+        </div>
+        <button id="register-btn">Register</button>
+        <div id="register-response" class="response"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Verify Registration</h2>
+        <div class="form-group">
+            <label for="verify-email">Email:</label>
+            <input type="email" id="verify-email" required>
+        </div>
+        <div class="form-group">
+            <label for="verify-otp">OTP:</label>
+            <input type="text" id="verify-otp" required>
+        </div>
+        <button id="verify-btn">Verify</button>
+        <div id="verify-response" class="response"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Login</h2>
+        <div class="form-group">
+            <label for="login-email">Email:</label>
+            <input type="email" id="login-email" required>
+        </div>
+        <div class="form-group">
+            <label for="login-password">Password:</label>
+            <input type="password" id="login-password" required>
+        </div>
+        <button id="login-btn">Login</button>
+        <div id="login-response" class="response"></div>
+    </div>
+    
+    <div class="card">
+        <h2>User Details</h2>
+        <button id="user-details-btn">Get User Details</button>
+        <div id="user-details-response" class="response"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Logout</h2>
+        <button id="logout-btn">Logout</button>
+        <div id="logout-response" class="response"></div>
+    </div>
+    
+    <script>
+        // Get CSRF token from cookie
+        function getCsrfToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Helper function for API calls
+        async function apiCall(url, method, data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                credentials: 'include',
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(url, options);
+            return {
+                status: response.status,
+                data: await response.json(),
+            };
+        }
+        
+        // Register
+        document.getElementById('register-btn').addEventListener('click', async () => {
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            
+            try {
+                const response = await apiCall('/api/register/', 'POST', { email, password });
+                document.getElementById('register-response').textContent = JSON.stringify(response, null, 2);
+                
+                // Auto-fill verify email
+                document.getElementById('verify-email').value = email;
+            } catch (error) {
+                document.getElementById('register-response').textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        // Verify Registration
+        document.getElementById('verify-btn').addEventListener('click', async () => {
+            const email = document.getElementById('verify-email').value;
+            const otp = document.getElementById('verify-otp').value;
+            
+            try {
+                const response = await apiCall('/api/register/verify/', 'POST', { email, otp });
+                document.getElementById('verify-response').textContent = JSON.stringify(response, null, 2);
+                
+                // Auto-fill login email
+                document.getElementById('login-email').value = email;
+            } catch (error) {
+                document.getElementById('verify-response').textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        // Login
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const response = await apiCall('/api/login/', 'POST', { email, password });
+                document.getElementById('login-response').textContent = JSON.stringify(response, null, 2);
+            } catch (error) {
+                document.getElementById('login-response').textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        // User Details
+        document.getElementById('user-details-btn').addEventListener('click', async () => {
+            try {
+                const response = await apiCall('/api/me/', 'GET');
+                document.getElementById('user-details-response').textContent = JSON.stringify(response, null, 2);
+            } catch (error) {
+                document.getElementById('user-details-response').textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                const response = await apiCall('/api/logout/', 'POST');
+                document.getElementById('logout-response').textContent = JSON.stringify(response, null, 2);
+            } catch (error) {
+                document.getElementById('logout-response').textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html> 
